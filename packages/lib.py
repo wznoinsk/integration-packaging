@@ -61,7 +61,7 @@ def extract_version(url):
     #  distribution-karaf-0.3.4-Lithium-SR4.tar.gz
     # major_version = 3
     # minor_version = 4
-    re_out = re.search(r'\d\.(\d)\.(\d)', url)
+    re_out = re.search(r'\d\.(\d+)\.(\d+)', url)
     version["version_major"] = re_out.group(1)
     version["version_minor"] = re_out.group(2)
 
@@ -93,15 +93,12 @@ def extract_release_version(url, version):
     if int(version["version_major"]) < 7:
         # ODL versions before Nitrogen use Karaf 3, have a codename
         # Include "-" in codename to avoid hanging "-" when no codename
-        version["codename"] = "-" + re.search(r'0\.[0-9]+\.[0-9]+-(.*)\/',
-                                              url).group(1)
+        _codename = re.search(r'karaf-0\.[0-9]+\.[0-9]+([-\.])'
+                              r'(.*)\.tar\.gz', url)
+        version["codename"] = _codename.group(1) + _codename.group(2)
     else:
         # ODL versions Nitrogen and after use Karaf 4, don't have a codename
         version["codename"] = ""
-
-    # Package version is assumed to be 1 for release builds
-    # TODO: Should be able to manually set this in case this is a rebuild
-    version["pkg_version"] = "1"
 
     return version
 
