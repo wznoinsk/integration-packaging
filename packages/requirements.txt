@@ -2,3 +2,4 @@ jinja2
 bs4
 requests
 tzlocal
+Cheetah3

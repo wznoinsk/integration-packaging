@@ -35,9 +35,9 @@ spec_in_dir = os.path.join(rpmbuild_dir, "SPECS")
 # refactoring like concatenating paths to templates here and only calling
 # Template.substitute in the build_rpm function.
 rpm_template = Template("opendaylight-$version_major.$version_minor."
-                        "$version_patch-$pkg_version.el7.noarch.rpm")
+                        "$version_patch-$pkg_version.$pkg_distro.noarch.rpm")
 srpm_template = Template("opendaylight-$version_major.$version_minor."
-                         "$version_patch-$pkg_version.el7.src.rpm")
+                         "$version_patch-$pkg_version.$pkg_distro.src.rpm")
 spec_template = Template("opendaylight-$version_major.$version_minor."
                          "$version_patch-$pkg_version.spec")
 
@@ -53,20 +53,10 @@ def build_rpm(build):
     distro_tar_path = os.path.join(
         pkg_lib.cache_dir,
         pkg_lib.distro_template.substitute(build)) + ".tar.gz"
-    rpm_out_path = os.path.join(rpmbuild_dir, "RPMS", "noarch",
-                                rpm_template.substitute(build))
-    spec_in_path = os.path.join(rpmbuild_dir, "SPECS",
-                                spec_template.substitute(build))
-    spec_path = os.path.join(rpm_root, "specs",
-                             spec_template.substitute(build))
-    srpm_out_path = os.path.join(rpmbuild_dir, "SRPMS",
-                                 srpm_template.substitute(build))
+
     unitfile_tar_path = os.path.join(
         pkg_lib.cache_dir,
         pkg_lib.unitfile_template.substitute(build)) + ".tar.gz"
-
-    # Call helper script to build the required RPM .spec files
-    build_specs.build_spec(build)
 
     # Clean up old rpmbuild dir structure if it exists
     if os.path.isdir(rpmbuild_dir):
@@ -76,12 +66,32 @@ def build_rpm(build):
     subprocess.call("rpmdev-setuptree")
 
     # Cache ODL distro and systemd unit file to package
-    distro_tar_path = pkg_lib.cache_distro(build)
-    unitfile_tar_path = pkg_lib.cache_sysd(build)["unitfile_tar_path"]
+    if build['keep_distro_name'] == 'True':
+        build.update({'distro_tar_path': build['download_url']})
+    else:
+        build.update({'distro_tar_path': pkg_lib.cache_distro(build)})
+
+    if build['keep_service_file_name'] == 'True':
+        build.update({'unitfile_tar_path': build['service_file_url']})
+    else:
+        build.update({'unitfile_tar_path': pkg_lib.cache_sysd(build)["unitfile_tar_path"]})
+
+    # Call helper script to build the required RPM .spec files
+    # has to be called after we got to know distro_tar_path and unitfile_tar_path
+    spec_path = build_specs.build_spec(build)
+
+    # for cheetah templates we adjust version_major/minor variables based on
+    # spec file hence the below has to run after build_spec
+    rpm_out_path = os.path.join(rpmbuild_dir, "RPMS", "noarch",
+                                rpm_template.substitute(build))
+    spec_in_path = os.path.join(rpmbuild_dir, "SPECS",
+                                spec_template.substitute(build))
+    srpm_out_path = os.path.join(rpmbuild_dir, "SRPMS",
+                                 srpm_template.substitute(build))
 
     # Move unit file, tarball and specfile to correct rpmbuild dirs
-    shutil.copy(distro_tar_path, src_in_dir)
-    shutil.copy(unitfile_tar_path, src_in_dir)
+    shutil.copy(build['distro_tar_path'], src_in_dir)
+    shutil.copy(build['unitfile_tar_path'], src_in_dir)
     shutil.copy(spec_path, spec_in_dir)
 
     # Call rpmbuild, build both SRPMs/RPMs

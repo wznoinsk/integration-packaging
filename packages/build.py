@@ -53,15 +53,43 @@ if __name__ == "__main__":
     # Direct builds require a archive URL
     direct_parser.add_argument("--download_url", required=True,
                                help="URL to tar/zip build archive to package")
+
+    direct_parser.add_argument("--service_file_url", required=False,
+                               help="URL to .service file")
+
     direct_parser.add_argument("--distro_name_prefix", required=False,
                                help="Specify the distribution name. Default: "
                                     "'distribution-karaf' (OpenDaylight <7) or"
                                     "'karaf' (OpenDaylight >= 7). Example: "
                                     "'vpnservice-karaf'.")
 
+    direct_parser.add_argument("--keep_distro_name", required=False,
+                               help="Whether (True/False) to keep the "
+                                    "original distribution (tar.gz) name when "
+                                    "passing artifacts to rpmbuild.",
+                               default=False)
+
+    direct_parser.add_argument("--keep_service_file_name", required=False,
+                               help="Whether (True/False) to keep the "
+                                    "original file name/format of service "
+                                    "file",
+                               default=False)
+
     direct_parser.add_argument("--pkg_version", required=False,
                                help="Specify the version of the package "
                                     "to build. Default: 1.")
+
+    direct_parser.add_argument("--pkg_distro", required=False,
+                               help="Specify the distro of the package "
+                                    "to build. "
+                                    "Default: <automatically discovered>.")
+
+    direct_parser.add_argument("--spec_template_path", required=False,
+                             help="Path to spec file used in RPM/deb "
+                                  "packaging")
+    direct_parser.add_argument("--spec_template_type", required=False,
+                             help="Templating engine spec is written in")
+
 
     # Create subparser for building latest snapshot from a given branch
     latest_snap_parser = subparsers.add_parser(
@@ -115,6 +143,20 @@ if __name__ == "__main__":
     else:
         build.update({"sysd_commit": lib.get_sysd_commit()})
 
+    if args.spec_template_path:
+        if args.spec_template_type:
+            build.update({'spec_template_path': args.spec_template_path})
+            build.update({'spec_template_type': args.spec_template_type})
+        else:
+            print("You have to specify spec_template_type along with " \
+                  "spec_template_path")
+            exit(1)
+
+    if args.spec_template_type == 'cheetah' and not args.spec_template_path:
+        print("You have to specify path to spec temlate file when using " \
+              "Cheetah templating engine")
+        exit(1)
+
     # Argparse rules imply args.major will only be present for latest_snap
     # builds and args.download_url will only be present for generic builds.
     # If doing a latest-snap build, find latest build tarball URL for given
@@ -127,12 +169,20 @@ if __name__ == "__main__":
     if hasattr(args, "pkg_version"):
         build.update({"pkg_version": args.pkg_version})
 
+    if hasattr(args, "pkg_distro"):
+        build.update({"pkg_distro": args.pkg_distro})
+
     # Use download_url to find pkg version, add to build def
     build.update(lib.extract_version(build["download_url"]))
+
+    build.update({'service_file_url': args.service_file_url})
+    build.update({'keep_service_file_name': args.keep_service_file_name})
 
     # Karaf 3 distros use distribution-karaf-, Karaf 4 uses karaf-
     build.update({"distro_name_prefix": args.distro_name_prefix or
         lib.get_distro_name_prefix(build['version_major'])})
+
+    build.update({"keep_distro_name": args.keep_distro_name})
 
     # Update build definition with Java version required by ODL version
     build.update({"java_version": lib.get_java_version(

@@ -11,6 +11,7 @@ LABEL name="Int/Pack deb-building container" \
 RUN yum install -y epel-release && yum clean all
 RUN yum install -y fedora-packager \
     python-pip \
+    java-devel \
     && yum clean all
 
 # Create user to do the build, add them to mock group
