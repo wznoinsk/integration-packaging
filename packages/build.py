@@ -87,9 +87,17 @@ if __name__ == "__main__":
     direct_parser.add_argument("--spec_template_path", required=False,
                              help="Path to spec file used in RPM/deb "
                                   "packaging")
+
     direct_parser.add_argument("--spec_template_type", required=False,
                              help="Templating engine spec is written in")
 
+    direct_parser.add_argument("--clean_builddir", required=False,
+                               help="Clean builddir before building a package",
+                               default=True)
+
+    direct_parser.add_argument("--extra_src_files", required=False,
+                               help="Comma,delimited paths to files that will "
+                                    "be copied to SOURCE in build directory")
 
     # Create subparser for building latest snapshot from a given branch
     latest_snap_parser = subparsers.add_parser(
@@ -156,6 +164,11 @@ if __name__ == "__main__":
         print("You have to specify path to spec temlate file when using " \
               "Cheetah templating engine")
         exit(1)
+
+    build.update({'clean_builddir': args.clean_builddir})
+
+    if args.extra_src_files:
+        build.update({'extra_src_files': args.extra_src_files})
 
     # Argparse rules imply args.major will only be present for latest_snap
     # builds and args.download_url will only be present for generic builds.

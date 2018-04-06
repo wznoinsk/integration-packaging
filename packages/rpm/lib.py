@@ -59,8 +59,9 @@ def build_rpm(build):
         pkg_lib.unitfile_template.substitute(build)) + ".tar.gz"
 
     # Clean up old rpmbuild dir structure if it exists
-    if os.path.isdir(rpmbuild_dir):
-        shutil.rmtree(rpmbuild_dir)
+    if build['clean_builddir'] == 'True':
+        if os.path.isdir(rpmbuild_dir):
+            shutil.rmtree(rpmbuild_dir)
 
     # Create rpmbuild dir structure
     subprocess.call("rpmdev-setuptree")
@@ -93,6 +94,9 @@ def build_rpm(build):
     shutil.copy(build['distro_tar_path'], src_in_dir)
     shutil.copy(build['unitfile_tar_path'], src_in_dir)
     shutil.copy(spec_path, spec_in_dir)
+
+    for f in build['extra_src_files'].split(','):
+        shutil.copy(f, src_in_dir)
 
     # Call rpmbuild, build both SRPMs/RPMs
     subprocess.call(["rpmbuild", "-ba", spec_in_path])
