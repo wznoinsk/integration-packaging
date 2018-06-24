@@ -63,7 +63,7 @@ def build_spec(build):
 
 
         _version = re.search(r'(\d+)\.(\d+)\.(\d+)',
-                             re.search('Version.*', out_content).group(0))
+                             re.search('Version: .*', out_content).group(0))
 
         if _version.group(1) != build['version_major']:
             build.update({'version_major': _version.group(1)})
