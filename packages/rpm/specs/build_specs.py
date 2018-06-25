@@ -69,7 +69,7 @@ def build_spec(build):
             build.update({'version_major': _version.group(1)})
 
         if _version.group(2) != build['version_minor']:
-            build.update({'version_minor': _version.group(1)})
+            build.update({'version_minor': _version.group(2)})
 
         out_specfile_name = out_template.substitute(build)
         out_specfile_path = os.path.join(spec_dir, out_specfile_name)
